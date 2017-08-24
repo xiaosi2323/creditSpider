@@ -10,6 +10,4 @@ import logging
 
 class CreditspiderPipeline(object):
     def process_item(self, item, spider):
-        logging.info("==========>")
-        logging.info(item['content'])
-        logging.info("***********")
+        pass

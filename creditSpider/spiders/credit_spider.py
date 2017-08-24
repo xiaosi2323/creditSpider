@@ -74,6 +74,14 @@ class CreditSpider(InitSpider):
                 'field': 'csrf'
             }
         },
+        "spiderPage": {
+            "requestUrl": "/Vio/list",
+            "method": "POST",
+            "requestParam": {
+                "page": "1",
+                "pageSize": "20"
+            }
+        },
         'store': {
             'enabled': False,
             'path': './data'
@@ -133,6 +141,7 @@ class CreditSpider(InitSpider):
             self.config['depth'] = int(config.get('depth', self.config_defaults['depth']))
             self.config['ignores'] = config.get('ignores', self.config_defaults['ignores'])
             self.config['httpstatus_list'] = config.get('httpstatus_list', self.config_defaults['httpstatus_list'])
+
             self.config['login'] = dict()
             self.config['login']['enabled'] = bool(
                 config.get('login', dict()).get('enabled', self.config_defaults['login']['enabled']))
@@ -158,12 +167,33 @@ class CreditSpider(InitSpider):
                 config.get('store', dict()).get('enabled', self.config_defaults['store']['enabled']))
             self.config['store']['path'] = str(
                 config.get('store', dict()).get('path', self.config_defaults['store']['path']))
+
+            self.config['spiderPage'] = dict()
+            self.config['spiderPage']['requestUrl'] = str(
+                config.get('spiderPage', dict()).get('requestUrl', self.config_defaults['spiderPage']['requestUrl']))
+            self.config['spiderPage']['method'] = str(
+                config.get('spiderPage', dict()).get('method', self.config_defaults['spiderPage']['method']))
+
+            self.config['spiderPage']['requestParam'] = dict()
+            self.config['spiderPage']['requestParam']['page'] = str(config.get('spiderPage', dict()).
+                                                                    get('requestParam', dict()).get('page',
+                                                                                                    self.config_defaults[
+                                                                                                        'spiderPage'][
+                                                                                                        'requestParam'][
+                                                                                                        'page']))
+
+            self.config['spiderPage']['requestParam']['pageSize'] = str(config.get('spiderPage', dict()).
+                                                                        get('requestParam', dict()).get('page',
+                                                                                                        self.config_defaults[
+                                                                                                            'spiderPage'][
+                                                                                                            'requestParam'][
+                                                                                                            'pageSize']))
             logging.info('Merged configuration:')
             logging.info(self.config)
 
             # Set scrapy globals
             self.allowed_domains = [self.config['domain']]
-            self.start_urls = [self.config['proto'] + '://' + self.config['domain'] + '/']
+            self.start_urls = [self.config['proto'] + '://' + self.config['domain'] + '/Vio/lst']
             self.rules = (
                 Rule(
                     LinkExtractor(
@@ -246,13 +276,20 @@ class CreditSpider(InitSpider):
         if self.config['login']['failure'] not in response.body:
             # Now the crawling can begin..
             logging.info('Login successful')
-            return self.initialized()
+            return FormRequest(
+                url=self.config['proto'] + '://' + self.config['domain'] + '/Vio/lst',
+                formdata=self.config['spiderPage']['requestParam'],
+                callback=self.parse_logic_data,
+                dont_filter=True,
+                method='POST')
         else:
             # Something went wrong, we couldn't log in, so nothing happens.
             logging.error('Unable to login')
 
-    # ----------------------------------------------------------------------
+            # ----------------------------------------------------------------------
+
     def parse(self, response):
+
         """
         Scrapy parse callback
         """
@@ -261,4 +298,17 @@ class CreditSpider(InitSpider):
         item = CreditspiderItem()
         item['title'] = response.url
         item['content'] = response.body
+        logging.info("=====>")
+        logging.info(item['title'])
         yield item
+
+    def parse_logic_data(self, response):
+        """
+        处理爬虫爬回来的业务数据
+        """
+        logging.info("====>process logic data")
+        logging.info("=====>url"+response.url)
+        logging.info(response.body)
+
+
+
